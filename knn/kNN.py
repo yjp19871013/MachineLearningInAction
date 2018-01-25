@@ -88,9 +88,9 @@ def first_demo():
 
 def classify_person():
     result_list = ['not at all', 'in small doses', 'in large doses']
-    percent_tats = float(input('percentage of time spent playing video games?'))
-    ff_miles = float(input('frequent flier miles earned per year?'))
-    ice_cream = float(input('liters if ice cream consumed per year?'))
+    percent_tats = float(input('percentage of time spent playing video games? '))
+    ff_miles = float(input('frequent flier miles earned per year? '))
+    ice_cream = float(input('liters if ice cream consumed per year? '))
     dating_data_mat, dating_labels = file2matrix('datingTestSet2.txt')
     norm_mat, ranges, min_vals = auto_norm(dating_data_mat)
     in_arr = np.array([ff_miles, percent_tats, ice_cream])
