@@ -1,5 +1,6 @@
 import numpy as np
 import operator
+import os
 
 
 def create_data_set():
@@ -81,6 +82,45 @@ def dating_class_test(dating_data_mat, dating_labels, ho_radio=0.10, k=3):
     print("the total error rate is: %f and error count is: %f" % (error_count / float(num_test_vecs), error_count))
 
 
+def img2vector(filename):
+    ret_vec = np.zeros([1, 1024])
+    fr = open(filename)
+    for i in range(32):
+        line = fr.readline()
+        for j in range(32):
+            ret_vec[0, 32 * i + j] = int(line[j])
+
+    return ret_vec
+
+
+def handwriting_class_test():
+    hw_labels = []
+    training_file_list = os.listdir('trainingDigits')
+    m = len(training_file_list)
+    training_mat = np.zeros([m, 1024])
+    for i in range(m):
+        file_name_str = training_file_list[i]
+        file_str = file_name_str.split('.')[0]
+        class_name_str = int(file_str.split('_')[0])
+        hw_labels.append(class_name_str)
+        training_mat[i, :] = img2vector('trainingDigits/%s' % file_name_str)
+
+    test_file_list = os.listdir('testDigits')
+    error_count = 0.0
+    m_test = len(test_file_list)
+    for i in range(m_test):
+        file_name_str = test_file_list[i]
+        file_str = file_name_str.split('.')[0]
+        class_name_str = int(file_str.split('_')[0])
+        vector_under_test = img2vector('testDigits/%s' % file_name_str)
+        classifier_result = classify0(vector_under_test, training_mat, hw_labels)
+        print('the classifier came back with: %d, the real answer is: %d' % (classifier_result, class_name_str))
+        if classifier_result != class_name_str:
+            error_count += 1.0
+
+    print('\nthe total number of errors is: %d' % error_count)
+    print('\nthe total error rate is: %f' % (error_count / float(m_test)))
+
 def first_demo():
     group, lables = create_data_set()
     print(classify0([0, 0], group, lables))
@@ -101,4 +141,4 @@ def classify_person():
 
 
 if __name__ == '__main__':
-    classify_person()
+    handwriting_class_test()
