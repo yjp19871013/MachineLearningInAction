@@ -1,4 +1,5 @@
 from math import log
+import operator
 
 
 def create_data_set():
@@ -71,6 +72,40 @@ def choose_best_feature_to_split(data_set):
     return best_feature
 
 
+def majority_cnt(class_list):
+    class_count = {}
+    for vote in class_list:
+        if vote not in class_count.keys():
+            class_count[vote] = 0
+        class_count[vote] += 1
+
+    sorted_class_count = sorted(class_count.items(),
+                                key=operator.itemgetter(1),
+                                reverse=True)
+    return sorted_class_count[0][0]
+
+
+def create_tree(data_set, labels):
+    class_list = [example[-1] for example in data_set]
+    if class_list.count(class_list[0]) == len(class_list):
+        return class_list[0]
+
+    if len(data_set[0]) == 1:
+        return majority_cnt(class_list)
+
+    best_feat = choose_best_feature_to_split(data_set)
+    best_feat_label = labels[best_feat]
+    my_tree = {best_feat_label: {}}
+    del(labels[best_feat])
+    feat_values = [example[best_feat] for example in data_set]
+    unique_vals = set(feat_values)
+    for value in unique_vals:
+        sub_labels = labels[:]
+        my_tree[best_feat_label][value] = create_tree(split_data_set(data_set, best_feat, value), sub_labels)
+
+    return my_tree
+
+
 def demo1():
     data_set, labels = create_data_set()
     print(calc_shannon_ent(data_set))
@@ -87,5 +122,10 @@ def demo3():
     print(choose_best_feature_to_split(data_set))
 
 
+def demo4():
+    data_set, labels = create_data_set()
+    print(create_tree(data_set, labels))
+
+
 if __name__ == '__main__':
-    demo3()
+    demo4()
