@@ -1,5 +1,4 @@
 import matplotlib.pyplot as plt
-import operator
 
 
 plt.rcParams['font.sans-serif'] = ['SimHei']
