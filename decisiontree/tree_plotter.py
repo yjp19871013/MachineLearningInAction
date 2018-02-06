@@ -48,8 +48,8 @@ def create_plot(in_tree):
     ax_props = dict(xticks=[], yticks=[])
     fig1 = plt.subplot(111, frameon=False, **ax_props)
 
-    total_w = float(get_num_leafs(my_tree))
-    total_d = float(get_tree_depth(my_tree))
+    total_w = float(get_num_leafs(in_tree))
+    total_d = float(get_tree_depth(in_tree))
     x_off = -0.5 / total_w
     y_off = 1.0
     plot_tree(fig1, in_tree, total_w, total_d, x_off, y_off, (0.5, 1.0), '')

@@ -1,6 +1,8 @@
 from math import log
 import operator
 
+from machinelearning.decisiontree import tree_plotter
+
 
 def create_data_set():
     data_set = [[1, 1, 'yes'],
@@ -106,6 +108,34 @@ def create_tree(data_set, labels):
     return my_tree
 
 
+def classify(input_tree, feat_labels, test_vec):
+    first_str = list(input_tree.keys())[0]
+    second_dict = input_tree[first_str]
+    feat_index = feat_labels.index(first_str)
+    class_label = ""
+    for key in second_dict.keys():
+        if test_vec[feat_index] == key:
+            if type(second_dict[key]) is dict:
+                class_label = classify(second_dict[key], feat_labels, test_vec)
+            else:
+                class_label = second_dict[key]
+
+    return class_label
+
+
+def store_tree(input_tree, filename):
+    import pickle
+    with open(filename, "wb") as fw:
+        pickle.dump(input_tree, fw)
+
+
+def grab_tree(filename):
+    import pickle
+    with open(filename, "rb") as fr:
+        tree = pickle.load(fr)
+    return tree
+
+
 def demo1():
     data_set, labels = create_data_set()
     print(calc_shannon_ent(data_set))
@@ -127,5 +157,27 @@ def demo4():
     print(create_tree(data_set, labels))
 
 
+def demo5():
+    data_set, labels = create_data_set()
+    my_tree = tree_plotter.retrieve_tree(0)
+    print(my_tree)
+    print(classify(my_tree, labels, [0, 1]))
+    print(classify(my_tree, labels, [1, 1]))
+
+
+def demo6():
+    my_tree = tree_plotter.retrieve_tree(0)
+    store_tree(my_tree, "my_tree.txt")
+    print(grab_tree("my_tree.txt"))
+
+
+def demo7():
+    fr = open("lenses.txt")
+    lenses = [inst.strip().split('\t') for inst in fr.readlines()]
+    lenses_labels = ['age', 'prescript', 'astigmatic', 'tearRate']
+    lenses_tree = create_tree(lenses, lenses_labels)
+    tree_plotter.create_plot(lenses_tree)
+
+
 if __name__ == '__main__':
-    demo4()
+    demo7()
