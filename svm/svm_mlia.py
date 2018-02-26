@@ -100,7 +100,7 @@ def smo_simple(data_mat_in, class_labels, c, toler, max_iter):
 
 
 class OptStruct:
-    def __init__(self, data_mat_in, class_labels, c, toler):
+    def __init__(self, data_mat_in, class_labels, c, toler, k_tup):
         self.x = data_mat_in
         self.label_mat = class_labels
         self.c = c
@@ -109,11 +109,14 @@ class OptStruct:
         self.alphas = np.mat(np.zeros((self.m, 1)))
         self.b = 0
         self.ecache = np.mat(np.zeros((self.m, 2)))
+        self.k = np.mat(np.zeros((self.m, self.m)))
+        for i in range(self.m):
+            self.k[:, i] = kernel_trans(self.x, self.x[i, :], k_tup)
 
 
 def calc_ek(opt_struct, k):
     fxk = float(np.multiply(opt_struct.alphas, opt_struct.label_mat).T *
-                (opt_struct.x * opt_struct.x[k, :].T)) + opt_struct.b
+                opt_struct.k[:, k] + opt_struct.b)
     ek = fxk - float(opt_struct.label_mat[k])
     return ek
 
@@ -157,9 +160,7 @@ def inner_l(i, opt_struct):
             print('l == h')
             return 0
 
-        eta = 2.0 * opt_struct.x[i, :] * opt_struct.x[j, :].T - \
-            opt_struct.x[i, :] * opt_struct.x[i, :].T - \
-            opt_struct.x[j, :] * opt_struct.x[j, :].T
+        eta = 2.0 * opt_struct.k[i, j] - opt_struct.k[i, i] - opt_struct.k[j, j]
         if eta >= 0:
             print('eta>=0')
             return 0
@@ -175,13 +176,13 @@ def inner_l(i, opt_struct):
                             opt_struct.label_mat[j] * (alpha_j_old - opt_struct.alphas[j])
         update_ek(opt_struct, i)
         b1 = opt_struct.b - ei - opt_struct.label_mat[i] * (opt_struct.alphas[i] - alpha_i_old) * \
-            opt_struct.x[i, :] * opt_struct.x[i, :].T - \
+            opt_struct.k[i, i] - \
             opt_struct.label_mat[j] * (opt_struct.alphas[j] - alpha_j_old) * \
-            opt_struct.x[i, :] * opt_struct.x[j, :].T
+            opt_struct.k[i, j]
         b2 = opt_struct.b - ei - opt_struct.label_mat[i] * (opt_struct.alphas[i] - alpha_j_old) * \
-            opt_struct.x[i, :] * opt_struct.x[j, :].T - \
+            opt_struct.k[i, j] - \
             opt_struct.label_mat[j] * (opt_struct.alphas[j] - alpha_j_old) * \
-            opt_struct.x[j, :] * opt_struct.x[j, :].T
+            opt_struct.k[j, j]
         if (opt_struct.alphas[i] > 0) and (opt_struct.c > opt_struct.alphas[i]):
             opt_struct.b = b1
         elif (opt_struct.alphas[j] > 0) and (opt_struct.c > opt_struct.alphas[j]):
@@ -194,7 +195,7 @@ def inner_l(i, opt_struct):
 
 
 def smo_p(data_mat_in, class_labels, c, toler, max_iter, k_tup=('lin', 0)):
-    os_struct = OptStruct(np.mat(data_mat_in), np.mat(class_labels).T, c, toler)
+    os_struct = OptStruct(np.mat(data_mat_in), np.mat(class_labels).T, c, toler, k_tup)
     iter = 0
     entire_set = True
     alpha_pairs_changed = 0
@@ -234,6 +235,52 @@ def calc_ws(alphas, data_arr, class_labels):
     return w
 
 
+def kernel_trans(x, a, k_tup):
+    m, n = np.shape(x)
+    k = np.mat(np.zeros((m, 1)))
+    if k_tup[0] == 'lin':
+        k = x * a.T
+    elif k_tup[0] == 'rbf':
+        for j in range(m):
+            delta_row = x[j, :] - a
+            k[j] = delta_row * delta_row.T
+        k = np.exp(k / (-1 * k_tup[1] ** 2))
+    else:
+        raise NameError('Houston We Have a Problem -- That Kernel is not recognized')
+    return k
+
+
+def test_rbf(k1=1.3):
+    data_arr, label_arr = load_data_set('testSet.txt')
+    b, alphas = smo_p(data_arr, label_arr, 200, 0.0001, 10000, ('rbf', k1))
+    data_mat = np.mat(data_arr)
+    label_mat = np.mat(label_arr).T
+    sv_ind = np.nonzero(alphas.A > 0)[0]
+    svs = data_mat[sv_ind]
+    label_sv = label_mat[sv_ind]
+    print('there are %d Siport Vectors' % np.shape(svs)[0])
+    m, n = np.shape(data_mat)
+    error_count = 0
+    for i in range(m):
+        kernel_eval = kernel_trans(svs, data_mat[i, :], ('rbf', k1))
+        predict = kernel_eval.T * np.multiply(label_sv, alphas[sv_ind]) + b
+        if np.sign(predict) != np.sign(label_arr[i]):
+            error_count += 1
+    print('the training error rate is: %f' % (float(error_count) / m))
+
+    data_arr, label_arr = load_data_set('testSetRBF2.txt')
+    error_count = 0
+    data_mat = np.mat(data_arr)
+    label_mat = np.mat(label_arr).T
+    m, n = np.shape(data_mat)
+    for i in range(m):
+        kernel_eval = kernel_trans(svs, data_mat[i, :], ('rbf', k1))
+        predict = kernel_eval.T * np.multiply(label_sv, alphas[sv_ind]) + b
+        if np.sign(predict) != np.sign(label_arr[i]):
+            error_count += 1
+    print('the test error rate is: %f' % (float(error_count) / m))
+
+
 def demo1():
     data_arr, label_arr = load_data_set('testSet.txt')
     print(data_arr)
@@ -263,4 +310,4 @@ def demo3():
 
 
 if __name__ == '__main__':
-    demo3()
+    test_rbf()
