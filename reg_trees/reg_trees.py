@@ -83,6 +83,53 @@ def choose_best_spilt(data_set, leaf_type=reg_leaf, err_type=reg_err, ops=(1, 4)
     return best_index, best_value
 
 
+def is_tree(obj):
+    return type(obj) is dict
+
+
+def get_mean(tree):
+    if is_tree(tree['right']):
+        tree['right'] = get_mean(tree['right'])
+
+    if is_tree(tree['left']):
+        tree['left'] = get_mean(tree['left'])
+
+    return (tree['left'] + tree['right']) / 2
+
+
+def prune(tree, test_data):
+    if np.shape(test_data)[0] == 0:
+        return get_mean(tree)
+
+    if is_tree(tree['right']) or is_tree(tree['left']):
+        l_set, r_set = bin_spilt_data_set(test_data, tree['spInd'], tree['spVal'])
+
+    if is_tree(tree['left']):
+        tree['left'] = prune(tree['left'], l_set)
+
+    if is_tree(tree['right']):
+        tree['right'] = prune(tree['right'], r_set)
+
+    if not is_tree(tree['left']) and not is_tree(tree['right']):
+        l_set, r_set = bin_spilt_data_set(test_data, tree['spInd'], tree['spVal'])
+
+        error_no_merge = 0
+        if l_set.size != 0:
+            error_no_merge += np.sum(np.power(l_set[:, -1] - tree['left'], 2))
+        if r_set.size != 0:
+            error_no_merge += np.sum(np.power(r_set[:, -1] - tree['right'], 2))
+        tree_mean = (tree['left'] + tree['right']) / 2
+        error_merge = np.sum(np.power(test_data[:, -1] - tree_mean, 2))
+        if error_merge < error_no_merge:
+            print('merging')
+            return tree_mean
+        else:
+            return tree
+
+    else:
+        return tree
+
+
 def demo1():
     my_data = load_data_set('ex00.txt')
     print(create_tree(np.mat(my_data)))
@@ -91,5 +138,13 @@ def demo1():
     print(create_tree(np.mat(my_data1)))
 
 
+def demo2():
+    my_data = load_data_set('ex2.txt')
+    my_tree = create_tree(np.mat(my_data))
+
+    my_test_data = load_data_set('ex2test.txt')
+    print(prune(my_tree, np.mat(my_test_data)))
+
+
 if __name__ == '__main__':
-    demo1()
+    demo2()
