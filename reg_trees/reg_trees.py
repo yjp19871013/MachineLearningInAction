@@ -130,6 +130,30 @@ def prune(tree, test_data):
         return tree
 
 
+def linear_solve(data_set):
+    m, n = np.shape(data_set)
+    x = np.mat(np.ones((m, n)))
+    y = np.mat(np.ones((m, 1)))
+    x[:, 1:n] = data_set[:, 0:n-1]
+    y = data_set[:, -1]
+    x_tx = x.T * x
+    if np.linalg.det(x_tx) == 0.0:
+        raise NameError('This matrix is singular, cannot do inverse, \n')
+    ws = x_tx.T * (x.T * y)
+    return ws, x, y
+
+
+def model_leaf(data_set):
+    ws, x, y = linear_solve(data_set)
+    return ws
+
+
+def model_err(data_set):
+    ws, x, y = linear_solve(data_set)
+    y_hat = x * ws
+    return np.sum(np.power(y - y_hat, 2))
+
+
 def demo1():
     my_data = load_data_set('ex00.txt')
     print(create_tree(np.mat(my_data)))
@@ -146,5 +170,10 @@ def demo2():
     print(prune(my_tree, np.mat(my_test_data)))
 
 
+def demo3():
+    my_data = load_data_set('exp2.txt')
+    print(create_tree(np.mat(my_data), model_leaf, model_err, (1, 10)))
+
+
 if __name__ == '__main__':
-    demo2()
+    demo3()
